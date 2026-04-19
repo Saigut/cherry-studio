@@ -16,35 +16,31 @@
  */
 import { CHERRYAI_PROVIDER } from '@renderer/config/providers'
 import store, { useAppDispatch, useAppSelector } from '@renderer/store'
-import {
-  setAssistantsTabSortType,
-  setShowAssistants,
-  setShowTopics,
-  toggleShowAssistants,
-  toggleShowTopics
-} from '@renderer/store/settings'
+import { setAssistantsTabSortType } from '@renderer/store/settings'
 import type { AssistantsSortType } from '@renderer/types'
 
-export function useShowAssistants() {
-  const showAssistants = useAppSelector((state) => state.settings.showAssistants)
-  const dispatch = useAppDispatch()
+import { useSidebarVisibility } from './useSidebarVisibility'
 
-  return {
-    showAssistants,
-    setShowAssistants: (show: boolean) => dispatch(setShowAssistants(show)),
-    toggleShowAssistants: () => dispatch(toggleShowAssistants())
-  }
+export function useShowAssistants() {
+  const fallbackShowAssistants = useAppSelector((state) => state.settings.showAssistants)
+  const fallbackShowTopics = useAppSelector((state) => state.settings.showTopics)
+  const { showAssistants, setShowAssistants, toggleShowAssistants } = useSidebarVisibility({
+    showAssistants: fallbackShowAssistants,
+    showTopics: fallbackShowTopics
+  })
+
+  return { showAssistants, setShowAssistants, toggleShowAssistants }
 }
 
 export function useShowTopics() {
-  const showTopics = useAppSelector((state) => state.settings.showTopics)
-  const dispatch = useAppDispatch()
+  const fallbackShowAssistants = useAppSelector((state) => state.settings.showAssistants)
+  const fallbackShowTopics = useAppSelector((state) => state.settings.showTopics)
+  const { showTopics, setShowTopics, toggleShowTopics } = useSidebarVisibility({
+    showAssistants: fallbackShowAssistants,
+    showTopics: fallbackShowTopics
+  })
 
-  return {
-    showTopics,
-    setShowTopics: (show: boolean) => dispatch(setShowTopics(show)),
-    toggleShowTopics: () => dispatch(toggleShowTopics())
-  }
+  return { showTopics, setShowTopics, toggleShowTopics }
 }
 
 export function useAssistantsTabSortType() {

@@ -23,7 +23,8 @@ import { windowService } from './WindowService'
 type StoreValue = any
 
 const logger = loggerService.withContext('ReduxService')
-const STORE_READY_TIMEOUT = 10000
+const STORE_READY_TIMEOUT = 30000
+const STORE_READY_POLL_INTERVAL = 500
 
 export class ReduxService {
   private isReady = false
@@ -32,20 +33,53 @@ export class ReduxService {
 
   constructor() {
     ipcMain.handle(IpcChannel.ReduxStoreReady, () => {
-      this.isReady = true
-      this.resolveReady()
+      this.markReady()
     })
+  }
+
+  private markReady(): void {
+    if (this.isReady) return
+
+    this.isReady = true
+    this.resolveReady()
+  }
+
+  private async probeRendererStoreReady(): Promise<boolean> {
+    const mainWindow = windowService.getMainWindow()
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return false
+    }
+
+    try {
+      return await mainWindow.webContents.executeJavaScript(`window.__reduxPersistBootstrapped === true`)
+    } catch {
+      return false
+    }
+  }
+
+  private async waitForRendererStoreProbe(timeoutMs: number): Promise<void> {
+    const startedAt = Date.now()
+
+    while (Date.now() - startedAt < timeoutMs) {
+      if (this.isReady) {
+        return
+      }
+
+      if (await this.probeRendererStoreReady()) {
+        this.markReady()
+        return
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, STORE_READY_POLL_INTERVAL))
+    }
+
+    throw new Error('Timeout waiting for Redux store to be ready')
   }
 
   private async waitForStoreReady(): Promise<void> {
     if (this.isReady) return
 
-    let timer: ReturnType<typeof setTimeout>
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Timeout waiting for Redux store to be ready')), STORE_READY_TIMEOUT)
-    })
-
-    await Promise.race([this.readyPromise, timeout]).finally(() => clearTimeout(timer))
+    await Promise.race([this.readyPromise, this.waitForRendererStoreProbe(STORE_READY_TIMEOUT)])
   }
 
   private async getWebContents(): Promise<Electron.WebContents> {

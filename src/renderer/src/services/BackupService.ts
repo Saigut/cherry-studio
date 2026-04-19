@@ -893,6 +893,44 @@ export async function getBackupData() {
 }
 
 /************************************* Backup Utils ************************************** */
+function restoreSidebarVisibilityPreferences(localStorageData: Record<string, any>) {
+  const persistKey = 'persist:cherry-studio'
+  const showAssistantsKey = 'ui:showAssistants'
+  const showTopicsKey = 'ui:showTopics'
+
+  if (typeof localStorageData[showAssistantsKey] === 'string') {
+    localStorage.setItem(showAssistantsKey, localStorageData[showAssistantsKey])
+  }
+
+  if (typeof localStorageData[showTopicsKey] === 'string') {
+    localStorage.setItem(showTopicsKey, localStorageData[showTopicsKey])
+  }
+
+  if (localStorage.getItem(showAssistantsKey) && localStorage.getItem(showTopicsKey)) {
+    return
+  }
+
+  const persistedState = localStorageData[persistKey]
+  if (!persistedState) {
+    return
+  }
+
+  try {
+    const parsedPersistState = JSON.parse(persistedState)
+    const settingsState = parsedPersistState?.settings ? JSON.parse(parsedPersistState.settings) : null
+
+    if (!localStorage.getItem(showAssistantsKey) && typeof settingsState?.showAssistants === 'boolean') {
+      localStorage.setItem(showAssistantsKey, String(settingsState.showAssistants))
+    }
+
+    if (!localStorage.getItem(showTopicsKey) && typeof settingsState?.showTopics === 'boolean') {
+      localStorage.setItem(showTopicsKey, String(settingsState.showTopics))
+    }
+  } catch (error) {
+    logger.warn('Failed to restore sidebar visibility preferences from backup state:', error as Error)
+  }
+}
+
 export async function handleData(data: Record<string, any>) {
   if (data.version === 1) {
     await clearDatabase()
@@ -907,6 +945,7 @@ export async function handleData(data: Record<string, any>) {
     }
 
     localStorage.setItem('persist:cherry-studio', data.localStorage['persist:cherry-studio'])
+    restoreSidebarVisibilityPreferences(data.localStorage)
     window.toast.success(i18n.t('message.restore.success'))
     setTimeout(() => window.api.relaunchApp(), 1000)
     return
@@ -914,6 +953,7 @@ export async function handleData(data: Record<string, any>) {
 
   if (data.version >= 2) {
     localStorage.setItem('persist:cherry-studio', data.localStorage['persist:cherry-studio'])
+    restoreSidebarVisibilityPreferences(data.localStorage)
 
     // remove notes_tree from indexedDB
     if (data.indexedDB['notes_tree']) {

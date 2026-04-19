@@ -45,6 +45,7 @@ import { initWebviewHotkeys } from './services/WebviewService'
 import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
+import './services/ReduxService'
 
 const logger = loggerService.withContext('MainEntry')
 

@@ -28,7 +28,6 @@ import { createCallbacks } from '@renderer/services/messageStreaming/callbacks'
 import { endSpan } from '@renderer/services/SpanManagerService'
 import { createStreamProcessor, type StreamProcessorCallbacks } from '@renderer/services/StreamProcessingService'
 import store from '@renderer/store'
-import { updateTopicUpdatedAt } from '@renderer/store/assistants'
 import { type ApiServerConfig, type Assistant, type FileMetadata, type Model, type Topic } from '@renderer/types'
 import type {
   AgentEffort,
@@ -69,6 +68,7 @@ import { mutate } from 'swr'
 import type { AppDispatch, RootState } from '../index'
 import { removeManyBlocks, updateOneBlock, upsertManyBlocks, upsertOneBlock } from '../messageBlock'
 import { newMessagesActions, selectMessagesForTopic } from '../newMessage'
+import { scheduleTopicUpdatedAt } from '../topicUpdatedAtScheduler'
 // import {
 //   bulkAddBlocksV2,
 //   clearMessagesFromDBV2,
@@ -452,7 +452,7 @@ const updateExistingMessageAndBlocksInDB = async (
 
       await updateMessage(updatedMessage.topicId, updatedMessage.id, messageUpdatesPayload)
 
-      store.dispatch(updateTopicUpdatedAt({ topicId: updatedMessage.topicId }))
+      scheduleTopicUpdatedAt(updatedMessage.topicId, store.dispatch)
     }
   } catch (error) {
     logger.error(`[updateExistingMsg] Failed to update message ${updatedMessage.id}:`, error as Error)
@@ -1000,8 +1000,6 @@ export const sendMessage =
       if (userMessageBlocks.length > 0) {
         dispatch(upsertManyBlocks(userMessageBlocks))
       }
-      dispatch(updateTopicUpdatedAt({ topicId }))
-
       const queue = getTopicQueue(topicId)
 
       if (activeAgentSession) {
@@ -1827,7 +1825,7 @@ export const updateMessageAndBlocksThunk =
         await updateBlocks(blockUpdatesList)
       }
 
-      dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, dispatch)
     } catch (error) {
       logger.error(`[updateMessageAndBlocksThunk] Failed to process updates for message ${messageId}:`, error as Error)
     }
@@ -1880,7 +1878,7 @@ export const removeBlocksThunk =
         })
       }
 
-      dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, dispatch)
     } catch (error) {
       logger.error(`[removeBlocksThunk] Failed to remove blocks from message ${messageId}:`, error as Error)
       throw error

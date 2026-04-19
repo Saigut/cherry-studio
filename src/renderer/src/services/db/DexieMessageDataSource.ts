@@ -18,7 +18,7 @@ import { loggerService } from '@logger'
 import db from '@renderer/databases'
 import FileManager from '@renderer/services/FileManager'
 import store from '@renderer/store'
-import { updateTopicUpdatedAt } from '@renderer/store/assistants'
+import { scheduleTopicUpdatedAt } from '@renderer/store/topicUpdatedAtScheduler'
 import type { Message, MessageBlock } from '@renderer/types/newMessage'
 import { isEmpty } from 'lodash'
 
@@ -111,7 +111,7 @@ export class DexieMessageDataSource implements MessageDataSource {
         await db.topics.update(topicId, { messages: updatedMessages })
       })
 
-      store.dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, store.dispatch)
     } catch (error) {
       logger.error(`Failed to append message to topic ${topicId}:`, error as Error)
       throw error
@@ -134,7 +134,7 @@ export class DexieMessageDataSource implements MessageDataSource {
           })
       })
 
-      store.dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, store.dispatch)
     } catch (error) {
       logger.error(`Failed to update message ${messageId} in topic ${topicId}:`, error as Error)
       throw error
@@ -172,7 +172,7 @@ export class DexieMessageDataSource implements MessageDataSource {
         }
       })
 
-      store.dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, store.dispatch)
     } catch (error) {
       logger.error(`Failed to update message and blocks for ${messageUpdates.id}:`, error as Error)
       throw error
@@ -212,7 +212,7 @@ export class DexieMessageDataSource implements MessageDataSource {
         await db.topics.update(topicId, { messages: topic.messages })
       })
 
-      store.dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, store.dispatch)
     } catch (error) {
       logger.error(`Failed to delete message ${messageId} from topic ${topicId}:`, error as Error)
       throw error
@@ -258,7 +258,7 @@ export class DexieMessageDataSource implements MessageDataSource {
         const remainingMessages = topic.messages.filter((m) => !messageIds.includes(m.id))
         await db.topics.update(topicId, { messages: remainingMessages })
       })
-      store.dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, store.dispatch)
     } catch (error) {
       logger.error(`Failed to delete messages from topic ${topicId}:`, error as Error)
       throw error
@@ -363,7 +363,7 @@ export class DexieMessageDataSource implements MessageDataSource {
         await db.topics.update(topicId, { messages: [] })
       })
 
-      store.dispatch(updateTopicUpdatedAt({ topicId }))
+      scheduleTopicUpdatedAt(topicId, store.dispatch)
     } catch (error) {
       logger.error(`Failed to clear messages for topic ${topicId}:`, error as Error)
       throw error

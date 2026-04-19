@@ -40,12 +40,20 @@ import {
 import type { SidebarIcon, ThemeMode, TranslateLanguageCode } from '@renderer/types'
 import type { UpgradeChannel } from '@shared/config/constant'
 
+import { useSidebarVisibility } from './useSidebarVisibility'
+
 export function useSettings() {
   const settings = useAppSelector((state) => state.settings)
+  const { showAssistants, showTopics } = useSidebarVisibility({
+    showAssistants: settings.showAssistants,
+    showTopics: settings.showTopics
+  })
   const dispatch = useAppDispatch()
 
   return {
     ...settings,
+    showAssistants,
+    showTopics,
     setSendMessageShortcut(shortcut: SendMessageShortcut) {
       dispatch(_setSendMessageShortcut(shortcut))
     },
